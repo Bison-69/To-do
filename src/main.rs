@@ -1,35 +1,33 @@
-use std::{env, io, process};
-use todo::{get_new_id, Action, Config};
+use std::env;
+use todo::{get_new_id, parse_and_return_args, Action};
 
 fn main() {
-    let config = Config::build(env::args()).unwrap_or_else(|err| {
-        eprintln!("Encountered error while parrsing arguments: {err}");
-        process::exit(1);
-    });
-    let one = run(config);
-    println!(
-        "{} is set to {} which has id {}",
-        one.get_description(),
-        one.get_id(),
-        one.completion
-    );
+    let args = parse_and_return_args(env::args());
+    run(args);
 }
 
-fn run(config: Config) -> Action {
-    if config.args == String::from("n") {
-        println!("Enter action description");
-        let mut description = String::new();
-        io::stdin().read_line(&mut description).unwrap();
-        let id = 0;
-        println!("Enter status (y/n)");
-        let mut status = String::new();
-        io::stdin().read_line(&mut status).unwrap();
-        let mut completion: bool = false;
-        if status.to_lowercase() == String::from("y") {
-            completion = true;
+fn run(args: Vec<String>) {
+    let len = args.len();
+    let flag = &args.clone()[0];
+    let mut vector = Vec::new();
+    match flag.as_str() {
+        "n" => {
+            for arg in args {
+                if arg == *flag {
+                    let _ = arg;
+                }
+                vector.push(arg);
+            }
+            let mut completion = true;
+            if vector[2].to_lowercase() == "true" {
+            } else if vector[2].to_lowercase() == "false" {
+                completion = false;
+            } else {
+                panic!("Unknown parameter: {}", vector[2]);
+            }
+            let action = Action::new(0, <String as Clone>::clone(&vector[1]), completion);
+            action.show();
         }
-        return Action::new(id, description, completion);
-    } else {
-        panic!("Not yet made");
+        _ => panic!("In devlopment"),
     }
 }
