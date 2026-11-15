@@ -7,4 +7,5 @@ Another rust cli to-do app
 
 ## Interface
 
-- Use flag 'n' for making a new Action.
+- Use flag 'n {description} {status}' for making a new action
+- Use flag 's {id} {status}' for changing the status of an action (it doesnt corrently work)
