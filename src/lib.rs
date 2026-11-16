@@ -1,3 +1,8 @@
+use csv;
+use std::{error::Error, io};
+
+type Record = (u32, String, bool);
+
 pub struct Action {
     id: u32,
     description: String,
@@ -59,9 +64,9 @@ impl ActionManager {
     }
 }
 
-pub fn get_new_id(actions: ActionManager) -> u32 {
+pub fn get_new_id(actions: &ActionManager) -> u32 {
     let mut num = 0;
-    for action in actions.actions {
+    for action in &actions.actions {
         if num == action.get_id() {
             num += 1;
         }
@@ -97,4 +102,34 @@ pub fn parse_and_return_args(mut args: impl Iterator<Item = String>) -> Vec<Stri
     }
 
     vector
+}
+
+pub fn read_csv() -> Result<ActionManager, Box<dyn Error>> {
+    let mut rdr = csv::Reader::from_reader(io::stdin());
+    let mut actionmanager = ActionManager::new(Vec::new());
+
+    for result in rdr.deserialize() {
+        let record: Record = result?;
+        let action = Action::new(record.0, record.1, record.2);
+        actionmanager.add(action);
+    }
+
+    Ok(actionmanager)
+}
+
+pub fn save_csv(action_manager: ActionManager) -> Result<(), Box<dyn Error>> {
+    let mut wtr = csv::Writer::from_path("todo.csv")?;
+
+    wtr.write_record(["ID", "DESCRIPTION", "STATUS"])?;
+
+    for action in action_manager.actions {
+        wtr.write_record([
+            action.id.to_string(),
+            action.description.clone(),
+            action.completion.to_string(),
+        ])?;
+    }
+    wtr.flush()?;
+
+    Ok(())
 }

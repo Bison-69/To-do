@@ -1,5 +1,5 @@
 use std::env;
-use todo::{get_new_id, parse_and_return_args, Action, ActionManager};
+use todo::{get_new_id, parse_and_return_args, read_csv, save_csv, Action, ActionManager};
 
 fn main() {
     let args = parse_and_return_args(env::args());
@@ -7,7 +7,10 @@ fn main() {
 }
 
 fn run(args: Vec<String>) {
-    let mut actionmanager = ActionManager::new(Vec::new());
+    let mut actionmanager = match read_csv() {
+        Ok(actionmanager) => actionmanager,
+        Err(err) => panic!("Got error {err}"),
+    };
     let flag = &args.clone()[0];
     let mut vector = Vec::new();
     match flag.as_str() {
@@ -25,7 +28,11 @@ fn run(args: Vec<String>) {
             } else {
                 panic!("Unknown parameter: {}", vector[2]);
             }
-            let action = Action::new(0, <String as Clone>::clone(&vector[1]), completion);
+            let action = Action::new(
+                get_new_id(&actionmanager),
+                <String as Clone>::clone(&vector[1]),
+                completion,
+            );
             actionmanager.add(action);
             actionmanager.show();
         }
@@ -40,9 +47,7 @@ fn run(args: Vec<String>) {
             let mut completion = true;
             if vector[2].to_lowercase() == "true" {
                 completion = true;
-            } else if vector[2].to_lowercase() == "false" {
-                completion = false;
-            } else {
+            } else if vector[2].to_lowercase() != "false" {
                 panic!("Unrecognized parameter: {}", vector[2]);
             }
             actionmanager
@@ -54,4 +59,5 @@ fn run(args: Vec<String>) {
         }
         _ => panic!("In devlopment"),
     }
+    save_csv(actionmanager).unwrap();
 }

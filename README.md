@@ -7,5 +7,5 @@ Another rust cli to-do app
 
 ## Interface
 
-- Use flag 'n {description} {status}' for making a new action
-- Use flag 's {id} {status}' for changing the status of an action (it doesnt corrently work)
+- Use flag 'n {description} {status} < {file.csv}' for making a new action
+- Use flag 's {id} {status} < {file.csv}' for changing the status of an action (it doesnt corrently work)
