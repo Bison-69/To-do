@@ -1,11 +1,12 @@
 use csv;
 use std::{error::Error, io};
 
-type Record = (u32, String, bool);
+type Record = (u32, String, String, bool);
 
 pub struct Action {
     id: u32,
     description: String,
+    urgency: String,
     completion: bool,
 }
 
@@ -14,10 +15,11 @@ pub struct ActionManager {
 }
 
 impl Action {
-    pub fn new(id: u32, description: String, completion: bool) -> Self {
+    pub fn new(id: u32, description: String, urgency: String, completion: bool) -> Self {
         Action {
             id,
             description,
+            urgency,
             completion,
         }
     }
@@ -30,13 +32,16 @@ impl Action {
     pub fn get_id(&self) -> u32 {
         self.id
     }
+    pub fn get_urgency(&self) -> String {
+        self.urgency.clone()
+    }
     pub fn is_completion(&self) -> bool {
         self.completion
     }
     pub fn show(&self) {
         println!(
-            "Action {} with discription '{}' set to {}",
-            self.id, self.description, self.completion
+            "Action {} with discription and urgency {}, {} set to {}",
+            self.id, self.description, self.urgency, self.completion
         );
     }
 }
@@ -62,6 +67,13 @@ impl ActionManager {
             action.show();
         }
     }
+    pub fn remove(&mut self, id: u32) {
+        let index = match self.actions.iter().position(|element| element.id == id) {
+            Some(index) => index,
+            None => panic!("No action with such id found"),
+        };
+        self.actions.remove(index);
+    }
 }
 
 pub fn get_new_id(actions: &ActionManager) -> u32 {
@@ -82,9 +94,13 @@ pub fn parse_and_return_args(mut args: impl Iterator<Item = String>) -> Vec<Stri
                 let description = args.next().unwrap_or_else(|| {
                     panic!("No description provided");
                 });
+                let urgency = args.next().unwrap_or_else(|| {
+                    panic!("No urgency provided");
+                });
                 let condition = args.next().unwrap_or("false".to_string());
                 vector.push(flag);
                 vector.push(description);
+                vector.push(urgency);
                 vector.push(condition);
             }
 
@@ -97,6 +113,15 @@ pub fn parse_and_return_args(mut args: impl Iterator<Item = String>) -> Vec<Stri
                 vector.push(id);
                 vector.push(condition);
             }
+
+            "rm" => {
+                let id = args.next().unwrap_or_else(|| {
+                    panic!("No id provided");
+                });
+                vector.push(flag);
+                vector.push(id);
+            }
+
             _ => panic!("In devlopment"),
         }
     }
@@ -110,7 +135,7 @@ pub fn read_csv() -> Result<ActionManager, Box<dyn Error>> {
 
     for result in rdr.deserialize() {
         let record: Record = result?;
-        let action = Action::new(record.0, record.1, record.2);
+        let action = Action::new(record.0, record.1, record.2, record.3);
         actionmanager.add(action);
     }
 
@@ -120,12 +145,13 @@ pub fn read_csv() -> Result<ActionManager, Box<dyn Error>> {
 pub fn save_csv(action_manager: ActionManager) -> Result<(), Box<dyn Error>> {
     let mut wtr = csv::Writer::from_path("todo.csv")?;
 
-    wtr.write_record(["ID", "DESCRIPTION", "STATUS"])?;
+    wtr.write_record(["ID", "DESCRIPTION", "URGENCY", "STATUS"])?;
 
     for action in action_manager.actions {
         wtr.write_record([
             action.id.to_string(),
             action.description.clone(),
+            action.urgency.clone(),
             action.completion.to_string(),
         ])?;
     }

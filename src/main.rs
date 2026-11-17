@@ -1,5 +1,5 @@
 use std::env;
-use todo::{get_new_id, parse_and_return_args, read_csv, save_csv, Action, ActionManager};
+use todo::{get_new_id, parse_and_return_args, read_csv, save_csv, Action};
 
 fn main() {
     let args = parse_and_return_args(env::args());
@@ -22,15 +22,16 @@ fn run(args: Vec<String>) {
                 vector.push(arg);
             }
             let mut completion = true;
-            if vector[2].to_lowercase() == "true" {
-            } else if vector[2].to_lowercase() == "false" {
+            if vector[3].to_lowercase() == "true" {
+            } else if vector[3].to_lowercase() == "false" {
                 completion = false;
             } else {
-                panic!("Unknown parameter: {}", vector[2]);
+                panic!("Unknown parameter: {}", vector[3]);
             }
             let action = Action::new(
                 get_new_id(&actionmanager),
                 <String as Clone>::clone(&vector[1]),
+                <String as Clone>::clone(&vector[2]),
                 completion,
             );
             actionmanager.add(action);
@@ -56,6 +57,10 @@ fn run(args: Vec<String>) {
                     panic!("Encoutered error {err}");
                 });
             actionmanager.show();
+        }
+        "rm" => {
+            let id: u32 = args.clone()[1].parse().unwrap();
+            actionmanager.remove(id);
         }
         _ => panic!("In devlopment"),
     }
