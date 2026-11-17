@@ -1,13 +1,21 @@
 use csv;
-use std::{error::Error, io};
+use std::{
+    clone,
+    error::Error,
+    io,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
-type Record = (u32, String, String, bool);
+type Record = (u32, String, String, bool, u64, Option<u64>, Option<String>);
 
 pub struct Action {
     id: u32,
     description: String,
     urgency: String,
     completion: bool,
+    timestamp: u64,
+    till: Option<u64>,
+    time_unit: Option<String>,
 }
 
 pub struct ActionManager {
@@ -15,12 +23,23 @@ pub struct ActionManager {
 }
 
 impl Action {
-    pub fn new(id: u32, description: String, urgency: String, completion: bool) -> Self {
+    pub fn new(
+        id: u32,
+        description: String,
+        urgency: String,
+        completion: bool,
+        timestamp: u64,
+        till: Option<u64>,
+        time_unit: Option<String>,
+    ) -> Self {
         Action {
             id,
             description,
             urgency,
             completion,
+            timestamp,
+            till,
+            time_unit,
         }
     }
     pub fn get_description(&self) -> String {
@@ -39,10 +58,23 @@ impl Action {
         self.completion
     }
     pub fn show(&self) {
-        println!(
-            "Action {} with discription and urgency {}, {} set to {}",
-            self.id, self.description, self.urgency, self.completion
-        );
+        match self.till {
+            Some(till) => match self.time_unit.clone() {
+                Some(unit) => {
+                    println!(
+            "Action {} with discription and urgency {}, {} set to {} made on {} and has time limit till {}",
+            self.id, self.description, self.urgency, self.completion,self.timestamp,time_in_sec(&unit, &till)
+                        );
+                }
+                None => panic!(),
+            },
+            None => {
+                println!(
+                    "Action {} with description and urgency {}, {} set to {} ",
+                    self.id, self.description, self.urgency, self.completion
+                )
+            }
+        }
     }
 }
 
@@ -97,11 +129,16 @@ pub fn parse_and_return_args(mut args: impl Iterator<Item = String>) -> Vec<Stri
                 let urgency = args.next().unwrap_or_else(|| {
                     panic!("No urgency provided");
                 });
+                let till = args.next().unwrap_or("None".to_string());
+                let time_unit = args.next().unwrap_or("None".to_string());
                 let condition = args.next().unwrap_or("false".to_string());
                 vector.push(flag);
                 vector.push(description);
                 vector.push(urgency);
                 vector.push(condition);
+                vector.push(get_time_stamp().to_string());
+                vector.push(till);
+                vector.push(time_unit);
             }
 
             "s" => {
@@ -135,7 +172,9 @@ pub fn read_csv() -> Result<ActionManager, Box<dyn Error>> {
 
     for result in rdr.deserialize() {
         let record: Record = result?;
-        let action = Action::new(record.0, record.1, record.2, record.3);
+        let action = Action::new(
+            record.0, record.1, record.2, record.3, record.4, record.5, record.6,
+        );
         actionmanager.add(action);
     }
 
@@ -145,7 +184,15 @@ pub fn read_csv() -> Result<ActionManager, Box<dyn Error>> {
 pub fn save_csv(action_manager: ActionManager) -> Result<(), Box<dyn Error>> {
     let mut wtr = csv::Writer::from_path("todo.csv")?;
 
-    wtr.write_record(["ID", "DESCRIPTION", "URGENCY", "STATUS"])?;
+    wtr.write_record([
+        "ID",
+        "DESCRIPTION",
+        "URGENCY",
+        "STATUS",
+        "TIMESTAMP",
+        "TILL",
+        "TIME_UNIT",
+    ])?;
 
     for action in action_manager.actions {
         wtr.write_record([
@@ -153,9 +200,36 @@ pub fn save_csv(action_manager: ActionManager) -> Result<(), Box<dyn Error>> {
             action.description.clone(),
             action.urgency.clone(),
             action.completion.to_string(),
+            action.timestamp.to_string(),
+            action.till.unwrap_or_default().to_string(),
+            action.time_unit.unwrap_or_default().to_string(),
         ])?;
     }
     wtr.flush()?;
 
     Ok(())
+}
+
+pub fn get_time_stamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
+pub fn get_duration_since(earlier: &u64) -> u64 {
+    get_time_stamp() - earlier
+}
+
+pub fn time_in_sec(unit: &String, num: &u64) -> u64 {
+    let time: u64 = match unit.as_str() {
+        "h" => (num * 60 * 60) as u64,
+        "m" => (num * 60) as u64,
+        "d" => (num * 24 * 60 * 60) as u64,
+        "w" => (num * 7 * 24 * 60 * 60) as u64,
+        _ => {
+            panic!("Unexpected error")
+        }
+    };
+    time
 }

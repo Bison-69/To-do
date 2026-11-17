@@ -28,11 +28,27 @@ fn run(args: Vec<String>) {
             } else {
                 panic!("Unknown parameter: {}", vector[3]);
             }
+            let timestamp: u64 = vector[4].parse().unwrap();
+            let mut till: Option<u64> = Some(1);
+            if vector[5].to_lowercase() == "none" {
+                till = None;
+            } else {
+                till = Some(vector[5].parse().unwrap());
+            }
+            let mut time_unit: Option<String> = Some("stuff".to_string());
+            if vector[6].to_lowercase() == "none" {
+                time_unit = None;
+            } else {
+                time_unit = Some(vector[6].clone());
+            }
             let action = Action::new(
                 get_new_id(&actionmanager),
                 <String as Clone>::clone(&vector[1]),
                 <String as Clone>::clone(&vector[2]),
                 completion,
+                timestamp,
+                till,
+                time_unit,
             );
             actionmanager.add(action);
             actionmanager.show();
